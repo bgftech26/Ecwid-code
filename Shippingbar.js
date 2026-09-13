@@ -4,10 +4,6 @@
   if (window.__BLACKGOLD_FREE_DELIVERY__) return;
   window.__BLACKGOLD_FREE_DELIVERY__ = true;
 
-  /* =====================================================
-     BLACKGOLD FOODS — FREE DELIVERY WIDGET
-     ===================================================== */
-
   const CONFIG = {
     regions: {
       male: {
@@ -22,17 +18,11 @@
 
     defaultRegion: "male",
 
-    /* Fallback positioning.
-       The script will try to detect your existing
-       scroll-to-top button automatically. */
     buttonSize: 52,
     left: 20,
     scrollBottom: 20,
     gap: 12,
 
-    /* If you know your scroll-to-top selector,
-       you can put it here later, e.g. "#scrollTopBtn".
-       Otherwise leave blank. */
     scrollTopSelector: ""
   };
 
@@ -46,12 +36,10 @@
 
   try {
     const saved = localStorage.getItem("bgfDeliveryRegion");
-    if (saved && CONFIG.regions[saved]) selectedRegion = saved;
+    if (saved && CONFIG.regions[saved]) {
+      selectedRegion = saved;
+    }
   } catch (e) {}
-
-  /* =========================
-     ICONS
-     ========================= */
 
   const vanIcon = `
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -61,10 +49,6 @@
       <circle cx="17" cy="17" r="2"></circle>
     </svg>
   `;
-
-  /* =========================
-     STYLES
-     ========================= */
 
   const style = document.createElement("style");
 
@@ -79,7 +63,9 @@
     #bgf-delivery-button {
       position: fixed;
       z-index: 99998;
+
       left: var(--bgf-left);
+
       bottom: calc(
         var(--bgf-scroll-bottom) +
         var(--bgf-size) +
@@ -89,7 +75,7 @@
       width: var(--bgf-size);
       height: var(--bgf-size);
 
-      border: 2px solid #fff;
+      border: 1px solid #d8d8d8;
       border-radius: 50%;
 
       display: flex;
@@ -99,22 +85,24 @@
       padding: 0;
       margin: 0;
 
-      color: #fff;
-      background: #f58220;
+      color: #111;
+      background: #fff;
 
-      box-shadow:
-        0 4px 14px rgba(0,0,0,.22);
+      box-shadow: 0 4px 14px rgba(0,0,0,.18);
 
       cursor: pointer;
 
       opacity: 0;
       visibility: hidden;
+
       transform: scale(.75);
 
       transition:
         opacity .25s ease,
         transform .25s ease,
-        background .2s ease,
+        background .25s ease,
+        color .25s ease,
+        border-color .25s ease,
         box-shadow .2s ease;
 
       -webkit-tap-highlight-color: transparent;
@@ -127,22 +115,43 @@
     }
 
     #bgf-delivery-button:hover {
-      background: #ff942f;
-      box-shadow:
-        0 5px 18px rgba(0,0,0,.28);
+      background: #f5f5f5;
     }
 
     #bgf-delivery-button.bgf-active {
-      background: #f58220;
       box-shadow:
-        0 0 0 3px rgba(245,130,32,.22),
-        0 5px 18px rgba(0,0,0,.25);
+        0 0 0 3px rgba(0,0,0,.07),
+        0 5px 18px rgba(0,0,0,.22);
+    }
+
+    #bgf-delivery-button.bgf-unlocked {
+      background: #218c4d;
+      color: #fff;
+      border-color: #218c4d;
+
+      box-shadow:
+        0 4px 16px rgba(33,140,77,.28);
+    }
+
+    #bgf-delivery-button.bgf-unlocked:hover {
+      background: #19783f;
+      border-color: #19783f;
+    }
+
+    #bgf-delivery-button.bgf-unlocked.bgf-active {
+      background: #218c4d;
+
+      box-shadow:
+        0 0 0 3px rgba(33,140,77,.18),
+        0 5px 18px rgba(0,0,0,.22);
     }
 
     #bgf-delivery-button svg {
       width: 54%;
       height: 54%;
+
       display: block;
+
       fill: none;
       stroke: currentColor;
       stroke-width: 1.8;
@@ -179,18 +188,14 @@
       border: 1px solid rgba(0,0,0,.07);
       border-radius: 16px;
 
-      box-shadow:
-        0 9px 30px rgba(0,0,0,.18);
+      box-shadow: 0 9px 30px rgba(0,0,0,.18);
 
       font-family: inherit;
 
       opacity: 0;
       visibility: hidden;
 
-      transform:
-        translateY(8px)
-        scale(.97);
-
+      transform: translateY(8px) scale(.97);
       transform-origin: bottom left;
 
       transition:
@@ -202,9 +207,7 @@
     #bgf-delivery-panel.bgf-open {
       opacity: 1;
       visibility: visible;
-      transform:
-        translateY(0)
-        scale(1);
+      transform: translateY(0) scale(1);
     }
 
     .bgf-header {
@@ -251,6 +254,7 @@
 
     #bgf-close {
       position: absolute;
+
       top: 10px;
       right: 11px;
 
@@ -371,6 +375,7 @@
     }
 
     @media (max-width: 480px) {
+
       #bgf-delivery-panel {
         padding: 15px;
         border-radius: 14px;
@@ -387,10 +392,6 @@
   `;
 
   document.head.appendChild(style);
-
-  /* =========================
-     HTML
-     ========================= */
 
   const button = document.createElement("button");
 
@@ -415,6 +416,7 @@
     >×</button>
 
     <div class="bgf-header">
+
       <div class="bgf-header-icon">
         ${vanIcon}
       </div>
@@ -422,6 +424,7 @@
       <div class="bgf-title">
         Free Delivery
       </div>
+
     </div>
 
     <label
@@ -471,10 +474,6 @@
 
   regionSelect.value = selectedRegion;
 
-  /* =========================
-     HELPERS
-     ========================= */
-
   function money(value) {
     return Number(value || 0).toLocaleString(
       "en-US",
@@ -486,6 +485,7 @@
   }
 
   function openPanel() {
+
     if (!currentCart.productsQuantity) return;
 
     panel.classList.add("bgf-open");
@@ -498,6 +498,7 @@
   }
 
   function closePanel() {
+
     panel.classList.remove("bgf-open");
     button.classList.remove("bgf-active");
 
@@ -508,6 +509,7 @@
   }
 
   function togglePanel() {
+
     if (panel.classList.contains("bgf-open")) {
       closePanel();
     } else {
@@ -515,11 +517,8 @@
     }
   }
 
-  /* =========================
-     PROGRESS DISPLAY
-     ========================= */
-
   function renderProgress() {
+
     const region =
       CONFIG.regions[selectedRegion];
 
@@ -530,10 +529,16 @@
       Number(currentCart.productsQuantity || 0);
 
     if (quantity > 0) {
+
       button.classList.add("bgf-visible");
+
     } else {
+
       button.classList.remove("bgf-visible");
+      button.classList.remove("bgf-unlocked");
+
       closePanel();
+
       return;
     }
 
@@ -558,8 +563,13 @@
       "Free at MVR " + money(target);
 
     if (remaining > 0) {
+
       panel.classList.remove(
         "bgf-complete"
+      );
+
+      button.classList.remove(
+        "bgf-unlocked"
       );
 
       message.innerHTML =
@@ -577,8 +587,13 @@
       );
 
     } else {
+
       panel.classList.add(
         "bgf-complete"
+      );
+
+      button.classList.add(
+        "bgf-unlocked"
       );
 
       message.innerHTML =
@@ -593,11 +608,8 @@
     }
   }
 
-  /* =========================
-     CART
-     ========================= */
-
   function getCart() {
+
     if (
       !window.Ecwid ||
       !Ecwid.Cart ||
@@ -607,6 +619,7 @@
     Ecwid.Cart.get(function (cart) {
 
       currentCart = {
+
         productsQuantity:
           Number(
             cart &&
@@ -628,10 +641,6 @@
     });
   }
 
-  /* =========================
-     REGION
-     ========================= */
-
   regionSelect.addEventListener(
     "change",
     function () {
@@ -640,24 +649,24 @@
         regionSelect.value;
 
       try {
+
         localStorage.setItem(
           "bgfDeliveryRegion",
           selectedRegion
         );
+
       } catch (e) {}
 
       renderProgress();
     }
   );
 
-  /* =========================
-     CLICKS
-     ========================= */
-
   button.addEventListener(
     "click",
     function (event) {
+
       event.stopPropagation();
+
       togglePanel();
     }
   );
@@ -665,6 +674,7 @@
   closeButton.addEventListener(
     "click",
     function () {
+
       closePanel();
     }
   );
@@ -693,13 +703,10 @@
     }
   );
 
-  /* =====================================================
-     ALIGN WITH EXISTING SCROLL-TO-TOP BUTTON
-     ===================================================== */
-
   function findScrollTopButton() {
 
     if (CONFIG.scrollTopSelector) {
+
       const manual =
         document.querySelector(
           CONFIG.scrollTopSelector
@@ -728,6 +735,7 @@
       i < selectors.length;
       i++
     ) {
+
       const el =
         document.querySelector(
           selectors[i]
@@ -796,9 +804,20 @@
 
   syncWithScrollButton();
 
-  setTimeout(syncWithScrollButton, 500);
-  setTimeout(syncWithScrollButton, 1500);
-  setTimeout(syncWithScrollButton, 3000);
+  setTimeout(
+    syncWithScrollButton,
+    500
+  );
+
+  setTimeout(
+    syncWithScrollButton,
+    1500
+  );
+
+  setTimeout(
+    syncWithScrollButton,
+    3000
+  );
 
   window.addEventListener(
     "resize",
@@ -810,10 +829,6 @@
     syncWithScrollButton,
     { passive: true }
   );
-
-  /* =========================
-     START ECWID
-     ========================= */
 
   function start() {
 
@@ -843,8 +858,7 @@
   if (
     window.Ecwid &&
     Ecwid.OnAPILoaded &&
-    typeof Ecwid.OnAPILoaded.add ===
-      "function"
+    typeof Ecwid.OnAPILoaded.add === "function"
   ) {
     Ecwid.OnAPILoaded.add(start);
   }
