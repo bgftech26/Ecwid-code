@@ -1,4 +1,3 @@
-<script>
 document.addEventListener("click", function (event) {
   var button = event.target.closest(".copy-account-btn");
 
@@ -55,4 +54,3 @@ document.addEventListener("click", function (event) {
     fallbackCopy();
   }
 });
-</script>
