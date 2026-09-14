@@ -1,4 +1,3 @@
-<script>
 (function(){
 
 function initTopButton(){
@@ -139,4 +138,3 @@ document.addEventListener("DOMContentLoaded",initTopButton);
 }
 
 })();
-</script>
