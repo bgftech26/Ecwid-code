@@ -1,4 +1,3 @@
-<script>
 (function(){
 function x(){
 if(!document.body)return setTimeout(x,100);
@@ -35,4 +34,3 @@ clearInterval(t);
 }
 x();
 })();
-</script>
