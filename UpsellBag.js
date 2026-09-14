@@ -1,4 +1,3 @@
-<script>
 (function () {
   var TOTE_ID = 862944105;
 
@@ -98,4 +97,3 @@
 
   start();
 })();
-</script>
