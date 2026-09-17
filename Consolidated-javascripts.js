@@ -1,186 +1,11 @@
-(function(){
-function x(){
-if(!document.body)return setTimeout(x,100);
-if(document.getElementById("bgc"))return;
-
-var s=document.createElement("style");
-s.textContent="#bgc{position:fixed;top:14px;right:16px;z-index:99999;width:52px;height:52px;border:1px solid #e5e5e5;border-radius:50%;background:#fff;color:#111;box-shadow:0 6px 20px #0003;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transform:translateY(-60px);pointer-events:none;transition:.3s}#bgc.on{opacity:1;transform:none;pointer-events:auto}#bgb{position:relative;width:29px;height:31px}#bgn{position:absolute;left:50%;top:18px;transform:translate(-50%,-50%);color:#fff;font:700 12px Arial}";
-document.head.appendChild(s);
-
-var b=document.createElement("button");
-b.id="bgc";
-b.setAttribute("aria-label","Open cart");
-b.innerHTML='<span id="bgb"><svg viewBox="0 0 30 32" width="29" height="31"><path d="M6 10.5h18L22.5 29h-15z" fill="currentColor"/><path d="M10.5 11V7.5a4.5 4.5 0 0 1 9 0V11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span id="bgn">0</span></span>';
-document.body.appendChild(b);
-
-b.onclick=function(){if(window.Ecwid)Ecwid.openPage("cart")};
-
-function u(c){
-var q=c&&c.productsQuantity?c.productsQuantity:0;
-document.getElementById("bgn").textContent=q>99?"99+":q;
-}
-
-addEventListener("scroll",function(){
-b.classList.toggle("on",scrollY>180);
-},{passive:true});
-
-var t=setInterval(function(){
-if(window.Ecwid&&Ecwid.Cart&&Ecwid.OnCartChanged){
-Ecwid.Cart.get(u);
-Ecwid.OnCartChanged.add(u);
-clearInterval(t);
-}
-},250);
-}
-x();
-})();
-(function(){
-
-function initTopButton(){
-
-if(document.getElementById("bgTopBtn")) return;
-
-var style=document.createElement("style");
-
-style.textContent=`
-#bgTopBtn{
-position:fixed;
-left:18px;
-bottom:22px;
-z-index:99998;
-
-width:46px;
-height:46px;
-padding:0;
-
-border:1px solid #e5e5e5;
-border-radius:50%;
-
-background:#fff;
-color:#111;
-
-box-shadow:0 5px 18px rgba(0,0,0,.16);
-
-display:flex;
-align-items:center;
-justify-content:center;
-
-cursor:pointer;
-
-opacity:0;
-visibility:hidden;
-pointer-events:none;
-
-transform:translateY(14px) scale(.92);
-
-transition:
-opacity .22s ease,
-transform .3s cubic-bezier(.22,1,.36,1),
-visibility .22s ease,
-box-shadow .2s ease;
-}
-
-#bgTopBtn.show{
-opacity:1;
-visibility:visible;
-pointer-events:auto;
-transform:translateY(0) scale(1);
-}
-
-#bgTopBtn:hover{
-transform:scale(1.07);
-box-shadow:0 7px 24px rgba(0,0,0,.22);
-}
-
-#bgTopBtn svg{
-width:20px;
-height:20px;
-display:block;
-}
-
-@media(max-width:600px){
-#bgTopBtn{
-left:12px;
-bottom:18px;
-width:44px;
-height:44px;
-}
-}
-`;
-
-document.head.appendChild(style);
-
-var btn=document.createElement("button");
-
-btn.id="bgTopBtn";
-btn.type="button";
-btn.setAttribute("aria-label","Back to top");
-
-btn.innerHTML=`
-<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-<path
-d="M6 15l6-6 6 6"
-stroke="currentColor"
-stroke-width="2"
-stroke-linecap="round"
-stroke-linejoin="round"/>
-</svg>
-`;
-
-document.body.appendChild(btn);
-
-var lastY=window.scrollY;
-
-window.addEventListener("scroll",function(){
-
-var currentY=window.scrollY;
-var difference=currentY-lastY;
-
-if(Math.abs(difference)<3) return;
-
-if(difference>0 && currentY>450){
-btn.classList.add("show");
-}
-
-if(difference<0){
-btn.classList.remove("show");
-}
-
-if(currentY<450){
-btn.classList.remove("show");
-}
-
-lastY=currentY;
-
-},{passive:true});
-
-btn.addEventListener("click",function(){
-
-btn.classList.remove("show");
-
-window.scrollTo({
-top:0,
-behavior:"smooth"
-});
-
-});
-
-}
-
-if(document.body){
-initTopButton();
-}else{
-document.addEventListener("DOMContentLoaded",initTopButton);
-}
-
-})();
 (function () {
   "use strict";
 
-  if (window.__BLACKGOLD_FREE_DELIVERY__) return;
-  window.__BLACKGOLD_FREE_DELIVERY__ = true;
+  /* Prevent duplicate loading */
+  if (window.__BGF_GLOBAL_UI__) return;
+  window.__BGF_GLOBAL_UI__ = true;
 
-  const CONFIG = {
+  const DELIVERY = {
     regions: {
       male: {
         name: "Malé",
@@ -191,33 +16,28 @@ document.addEventListener("DOMContentLoaded",initTopButton);
         target: 925.93
       }
     },
-
-    defaultRegion: "male",
-
-    buttonSize: 52,
-    left: 20,
-    scrollBottom: 20,
-    gap: 12,
-
-    scrollTopSelector: ""
+    defaultRegion: "male"
   };
 
-  let currentCart = {
+  let cartState = {
     productsQuantity: 0,
     subtotal: 0
   };
 
-  let selectedRegion = CONFIG.defaultRegion;
-  let started = false;
+  let selectedRegion = DELIVERY.defaultRegion;
+  let ecwidStarted = false;
+  let scrollTicking = false;
+  let lastScrollY = window.scrollY;
 
   try {
     const saved = localStorage.getItem("bgfDeliveryRegion");
-    if (saved && CONFIG.regions[saved]) {
+
+    if (saved && DELIVERY.regions[saved]) {
       selectedRegion = saved;
     }
-  } catch (e) {}
+  } catch (_) {}
 
-  const vanIcon = `
+  const VAN_ICON = `
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M3 6h11v9H3z"></path>
       <path d="M14 9h3.5l3 3v3H14z"></path>
@@ -226,884 +46,1435 @@ document.addEventListener("DOMContentLoaded",initTopButton);
     </svg>
   `;
 
-  const style = document.createElement("style");
+  function init() {
+    if (!document.body) return;
 
-  style.textContent = `
-    :root {
-      --bgf-size: ${CONFIG.buttonSize}px;
-      --bgf-left: ${CONFIG.left}px;
-      --bgf-scroll-bottom: ${CONFIG.scrollBottom}px;
-      --bgf-gap: ${CONFIG.gap}px;
-    }
+    /* =========================
+       STYLES
+       ========================= */
 
-    #bgf-delivery-button {
-      position: fixed;
-      z-index: 99998;
+    const style = document.createElement("style");
 
-      left: var(--bgf-left);
+    style.id = "bgf-global-ui-styles";
 
-      bottom: calc(
-        var(--bgf-scroll-bottom) +
-        var(--bgf-size) +
-        var(--bgf-gap)
-      );
+    style.textContent = `
 
-      width: var(--bgf-size);
-      height: var(--bgf-size);
+      /* =========================
+         FLOATING CART
+         ========================= */
 
-      border: 1px solid #d8d8d8;
-      border-radius: 50%;
+      #bgc{
+        position:fixed;
+        top:14px;
+        right:16px;
+        z-index:99999;
 
-      display: flex;
-      align-items: center;
-      justify-content: center;
+        width:52px;
+        height:52px;
 
-      padding: 0;
-      margin: 0;
+        padding:0;
 
-      color: #111;
-      background: #fff;
+        border:1px solid #e5e5e5;
+        border-radius:50%;
 
-      box-shadow: 0 4px 14px rgba(0,0,0,.18);
+        background:#fff;
+        color:#111;
 
-      cursor: pointer;
+        box-shadow:0 6px 20px rgba(0,0,0,.2);
 
-      opacity: 0;
-      visibility: hidden;
+        display:flex;
+        align-items:center;
+        justify-content:center;
 
-      transform: scale(.75);
+        cursor:pointer;
 
-      transition:
-        opacity .25s ease,
-        transform .25s ease,
-        background .25s ease,
-        color .25s ease,
-        border-color .25s ease,
-        box-shadow .2s ease;
+        opacity:0;
+        transform:translateY(-60px);
+        pointer-events:none;
 
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    #bgf-delivery-button.bgf-visible {
-      opacity: 1;
-      visibility: visible;
-      transform: scale(1);
-    }
-
-    #bgf-delivery-button:hover {
-      background: #f5f5f5;
-    }
-
-    #bgf-delivery-button.bgf-active {
-      box-shadow:
-        0 0 0 3px rgba(0,0,0,.07),
-        0 5px 18px rgba(0,0,0,.22);
-    }
-
-    #bgf-delivery-button.bgf-unlocked {
-      background: #218c4d;
-      color: #fff;
-      border-color: #218c4d;
-
-      box-shadow:
-        0 4px 16px rgba(33,140,77,.28);
-    }
-
-    #bgf-delivery-button.bgf-unlocked:hover {
-      background: #19783f;
-      border-color: #19783f;
-    }
-
-    #bgf-delivery-button.bgf-unlocked.bgf-active {
-      background: #218c4d;
-
-      box-shadow:
-        0 0 0 3px rgba(33,140,77,.18),
-        0 5px 18px rgba(0,0,0,.22);
-    }
-
-    #bgf-delivery-button svg {
-      width: 54%;
-      height: 54%;
-
-      display: block;
-
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 1.8;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    #bgf-delivery-panel {
-      position: fixed;
-      z-index: 99997;
-
-      left: var(--bgf-left);
-
-      bottom: calc(
-        var(--bgf-scroll-bottom) +
-        var(--bgf-size) +
-        var(--bgf-gap) +
-        var(--bgf-size) +
-        10px
-      );
-
-      width: min(
-        310px,
-        calc(100vw - var(--bgf-left) - 18px)
-      );
-
-      box-sizing: border-box;
-
-      padding: 17px;
-
-      background: #fff;
-      color: #17211b;
-
-      border: 1px solid rgba(0,0,0,.07);
-      border-radius: 16px;
-
-      box-shadow: 0 9px 30px rgba(0,0,0,.18);
-
-      font-family: inherit;
-
-      opacity: 0;
-      visibility: hidden;
-
-      transform: translateY(8px) scale(.97);
-      transform-origin: bottom left;
-
-      transition:
-        opacity .2s ease,
-        transform .2s ease,
-        visibility .2s ease;
-    }
-
-    #bgf-delivery-panel.bgf-open {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(0) scale(1);
-    }
-
-    .bgf-header {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-
-      padding-right: 26px;
-      margin-bottom: 14px;
-    }
-
-    .bgf-header-icon {
-      flex: 0 0 auto;
-
-      width: 31px;
-      height: 31px;
-
-      border-radius: 50%;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      background: #f58220;
-      color: #fff;
-    }
-
-    .bgf-header-icon svg {
-      width: 18px;
-      height: 18px;
-
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 1.8;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .bgf-title {
-      font-size: 16px;
-      line-height: 1.15;
-      font-weight: 700;
-    }
-
-    #bgf-close {
-      position: absolute;
-
-      top: 10px;
-      right: 11px;
-
-      width: 30px;
-      height: 30px;
-
-      border: 0;
-      padding: 0;
-
-      background: transparent;
-      color: #333;
-
-      font-size: 23px;
-      font-family: Arial, sans-serif;
-      font-weight: 300;
-      line-height: 28px;
-
-      cursor: pointer;
-    }
-
-    .bgf-label {
-      display: block;
-
-      margin: 0 0 6px;
-
-      font-size: 11px;
-      font-weight: 600;
-
-      color: #686868;
-    }
-
-    #bgf-region {
-      width: 100%;
-      height: 40px;
-
-      box-sizing: border-box;
-
-      margin: 0 0 15px;
-      padding: 0 34px 0 11px;
-
-      border: 1px solid #dedede;
-      border-radius: 9px;
-
-      background: #f8f8f8;
-      color: #1a1a1a;
-
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 600;
-
-      cursor: pointer;
-      outline: none;
-    }
-
-    #bgf-region:focus {
-      border-color: #8ab69a;
-      box-shadow: 0 0 0 2px rgba(26,107,67,.09);
-    }
-
-    .bgf-track {
-      position: relative;
-
-      width: 100%;
-      height: 9px;
-
-      background: #e8e8e8;
-
-      border-radius: 100px;
-      overflow: hidden;
-
-      margin-bottom: 11px;
-    }
-
-    #bgf-fill {
-      width: 0%;
-      height: 100%;
-
-      border-radius: 100px;
-
-      background: #268b4b;
-
-      transition: width .4s ease;
-    }
-
-    #bgf-message {
-      font-size: 14px;
-      line-height: 1.35;
-      font-weight: 700;
-
-      margin-bottom: 8px;
-    }
-
-    #bgf-message strong {
-      color: #1c8145;
-    }
-
-    .bgf-values {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-
-      color: #6c6c6c;
-
-      font-size: 10.5px;
-      line-height: 1.3;
-    }
-
-    .bgf-values span:last-child {
-      text-align: right;
-    }
-
-    #bgf-delivery-panel.bgf-complete #bgf-fill {
-      background: #20a453;
-    }
-
-    #bgf-delivery-panel.bgf-complete .bgf-header-icon {
-      background: #20a453;
-    }
-
-    @media (max-width: 480px) {
-
-      #bgf-delivery-panel {
-        padding: 15px;
-        border-radius: 14px;
+        transition:
+          opacity .3s ease,
+          transform .3s ease;
       }
 
-      .bgf-title {
-        font-size: 15px;
+      #bgc.on{
+        opacity:1;
+        transform:none;
+        pointer-events:auto;
       }
 
-      #bgf-message {
-        font-size: 13px;
+      #bgb{
+        position:relative;
+        width:29px;
+        height:31px;
       }
-    }
-  `;
 
-  document.head.appendChild(style);
+      #bgn{
+        position:absolute;
+        left:50%;
+        top:18px;
 
-  const button = document.createElement("button");
+        transform:translate(-50%,-50%);
 
-  button.id = "bgf-delivery-button";
-  button.type = "button";
-  button.setAttribute("aria-label", "Free delivery progress");
-  button.setAttribute("aria-expanded", "false");
-  button.title = "Free delivery progress";
-  button.innerHTML = vanIcon;
+        color:#fff;
 
-  const panel = document.createElement("div");
+        font:
+          700 12px Arial,
+          sans-serif;
+      }
 
-  panel.id = "bgf-delivery-panel";
-  panel.setAttribute("role", "region");
-  panel.setAttribute("aria-label", "Free delivery progress");
 
-  panel.innerHTML = `
-    <button
-      id="bgf-close"
-      type="button"
-      aria-label="Close free delivery progress"
-    >×</button>
+      /* =========================
+         SCROLL TO TOP
+         ========================= */
 
-    <div class="bgf-header">
+      #bgTopBtn{
+        position:fixed;
 
-      <div class="bgf-header-icon">
-        ${vanIcon}
-      </div>
+        left:18px;
+        bottom:22px;
 
-      <div class="bgf-title">
-        Free Delivery
-      </div>
+        z-index:99998;
 
-    </div>
+        width:46px;
+        height:46px;
 
-    <label
-      class="bgf-label"
-      for="bgf-region"
-    >
-      Delivery area
-    </label>
+        padding:0;
 
-    <select id="bgf-region">
-      <option value="male">Malé</option>
-      <option value="hulhumale">Hulhumalé Phase 1</option>
-    </select>
+        border:1px solid #e5e5e5;
+        border-radius:50%;
 
-    <div class="bgf-track">
-      <div id="bgf-fill"></div>
-    </div>
+        background:#fff;
+        color:#111;
 
-    <div id="bgf-message"></div>
+        box-shadow:
+          0 5px 18px
+          rgba(0,0,0,.16);
 
-    <div class="bgf-values">
-      <span id="bgf-cart-value"></span>
-      <span id="bgf-target-value"></span>
-    </div>
-  `;
+        display:flex;
+        align-items:center;
+        justify-content:center;
 
-  document.body.appendChild(button);
-  document.body.appendChild(panel);
+        cursor:pointer;
 
-  const regionSelect =
-    document.getElementById("bgf-region");
+        opacity:0;
+        visibility:hidden;
+        pointer-events:none;
 
-  const progressFill =
-    document.getElementById("bgf-fill");
+        transform:
+          translateY(14px)
+          scale(.92);
 
-  const message =
-    document.getElementById("bgf-message");
+        transition:
+          opacity .22s ease,
+          transform .3s cubic-bezier(.22,1,.36,1),
+          visibility .22s ease,
+          box-shadow .2s ease;
+      }
 
-  const cartValue =
-    document.getElementById("bgf-cart-value");
+      #bgTopBtn.show{
+        opacity:1;
+        visibility:visible;
+        pointer-events:auto;
 
-  const targetValue =
-    document.getElementById("bgf-target-value");
+        transform:
+          translateY(0)
+          scale(1);
+      }
 
-  const closeButton =
-    document.getElementById("bgf-close");
+      #bgTopBtn:hover{
+        transform:scale(1.07);
 
-  regionSelect.value = selectedRegion;
+        box-shadow:
+          0 7px 24px
+          rgba(0,0,0,.22);
+      }
 
-  function money(value) {
-    return Number(value || 0).toLocaleString(
-      "en-US",
-      {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+      #bgTopBtn svg{
+        width:20px;
+        height:20px;
+        display:block;
+      }
+
+
+      /* =========================
+         FREE DELIVERY BUTTON
+         ========================= */
+
+      #bgf-delivery-button{
+        position:fixed;
+
+        left:18px;
+        bottom:80px;
+
+        z-index:99998;
+
+        width:46px;
+        height:46px;
+
+        border:1px solid #d8d8d8;
+        border-radius:50%;
+
+        display:flex;
+        align-items:center;
+        justify-content:center;
+
+        padding:0;
+        margin:0;
+
+        color:#111;
+        background:#fff;
+
+        box-shadow:
+          0 4px 14px
+          rgba(0,0,0,.18);
+
+        cursor:pointer;
+
+        opacity:0;
+        visibility:hidden;
+        pointer-events:none;
+
+        transform:scale(.75);
+
+        transition:
+          opacity .25s ease,
+          transform .25s ease,
+          background .25s ease,
+          color .25s ease,
+          border-color .25s ease,
+          box-shadow .2s ease;
+
+        -webkit-tap-highlight-color:
+          transparent;
+      }
+
+      #bgf-delivery-button.bgf-visible{
+        opacity:1;
+        visibility:visible;
+        pointer-events:auto;
+
+        transform:scale(1);
+      }
+
+      #bgf-delivery-button:hover{
+        background:#f5f5f5;
+      }
+
+      #bgf-delivery-button.bgf-active{
+        box-shadow:
+          0 0 0 3px rgba(0,0,0,.07),
+          0 5px 18px rgba(0,0,0,.22);
+      }
+
+      #bgf-delivery-button.bgf-unlocked{
+        background:#218c4d;
+        color:#fff;
+
+        border-color:#218c4d;
+
+        box-shadow:
+          0 4px 16px
+          rgba(33,140,77,.28);
+      }
+
+      #bgf-delivery-button.bgf-unlocked:hover{
+        background:#19783f;
+        border-color:#19783f;
+      }
+
+      #bgf-delivery-button svg{
+        width:54%;
+        height:54%;
+
+        display:block;
+
+        fill:none;
+        stroke:currentColor;
+
+        stroke-width:1.8;
+        stroke-linecap:round;
+        stroke-linejoin:round;
+      }
+
+
+      /* =========================
+         FREE DELIVERY PANEL
+         ========================= */
+
+      #bgf-delivery-panel{
+        position:fixed;
+
+        left:18px;
+        bottom:136px;
+
+        z-index:99997;
+
+        width:min(
+          310px,
+          calc(100vw - 36px)
+        );
+
+        box-sizing:border-box;
+
+        padding:17px;
+
+        background:#fff;
+        color:#17211b;
+
+        border:
+          1px solid
+          rgba(0,0,0,.07);
+
+        border-radius:16px;
+
+        box-shadow:
+          0 9px 30px
+          rgba(0,0,0,.18);
+
+        font-family:inherit;
+
+        opacity:0;
+        visibility:hidden;
+        pointer-events:none;
+
+        transform:
+          translateY(8px)
+          scale(.97);
+
+        transform-origin:
+          bottom left;
+
+        transition:
+          opacity .2s ease,
+          transform .2s ease,
+          visibility .2s ease;
+      }
+
+      #bgf-delivery-panel.bgf-open{
+        opacity:1;
+        visibility:visible;
+        pointer-events:auto;
+
+        transform:
+          translateY(0)
+          scale(1);
+      }
+
+      .bgf-header{
+        display:flex;
+        align-items:center;
+
+        gap:9px;
+
+        padding-right:26px;
+        margin-bottom:14px;
+      }
+
+      .bgf-header-icon{
+        flex:0 0 auto;
+
+        width:31px;
+        height:31px;
+
+        border-radius:50%;
+
+        display:flex;
+        align-items:center;
+        justify-content:center;
+
+        background:#f58220;
+        color:#fff;
+      }
+
+      .bgf-header-icon svg{
+        width:18px;
+        height:18px;
+
+        fill:none;
+        stroke:currentColor;
+
+        stroke-width:1.8;
+        stroke-linecap:round;
+        stroke-linejoin:round;
+      }
+
+      .bgf-title{
+        font-size:16px;
+        line-height:1.15;
+        font-weight:700;
+      }
+
+      #bgf-close{
+        position:absolute;
+
+        top:10px;
+        right:11px;
+
+        width:30px;
+        height:30px;
+
+        padding:0;
+        border:0;
+
+        background:transparent;
+        color:#333;
+
+        font:
+          300 23px/28px Arial,
+          sans-serif;
+
+        cursor:pointer;
+      }
+
+      .bgf-label{
+        display:block;
+
+        margin:0 0 6px;
+
+        font-size:11px;
+        font-weight:600;
+
+        color:#686868;
+      }
+
+      #bgf-region{
+        width:100%;
+        height:40px;
+
+        box-sizing:border-box;
+
+        margin:0 0 15px;
+
+        padding:
+          0 34px
+          0 11px;
+
+        border:
+          1px solid
+          #dedede;
+
+        border-radius:9px;
+
+        background:#f8f8f8;
+        color:#1a1a1a;
+
+        font-family:inherit;
+        font-size:13px;
+        font-weight:600;
+
+        cursor:pointer;
+        outline:none;
+      }
+
+      #bgf-region:focus{
+        border-color:#8ab69a;
+
+        box-shadow:
+          0 0 0 2px
+          rgba(26,107,67,.09);
+      }
+
+      .bgf-track{
+        position:relative;
+
+        width:100%;
+        height:9px;
+
+        background:#e8e8e8;
+
+        border-radius:100px;
+
+        overflow:hidden;
+
+        margin-bottom:11px;
+      }
+
+      #bgf-fill{
+        width:0%;
+        height:100%;
+
+        border-radius:100px;
+
+        background:#268b4b;
+
+        transition:
+          width .4s ease;
+      }
+
+      #bgf-message{
+        font-size:14px;
+        line-height:1.35;
+        font-weight:700;
+
+        margin-bottom:8px;
+      }
+
+      #bgf-message strong{
+        color:#1c8145;
+      }
+
+      .bgf-values{
+        display:flex;
+
+        justify-content:
+          space-between;
+
+        gap:12px;
+
+        color:#6c6c6c;
+
+        font-size:10.5px;
+        line-height:1.3;
+      }
+
+      .bgf-values span:last-child{
+        text-align:right;
+      }
+
+      #bgf-delivery-panel.bgf-complete
+      #bgf-fill{
+        background:#20a453;
+      }
+
+      #bgf-delivery-panel.bgf-complete
+      .bgf-header-icon{
+        background:#20a453;
+      }
+
+
+      /* =========================
+         MOBILE
+         ========================= */
+
+      @media(max-width:600px){
+
+        #bgTopBtn{
+          left:12px;
+          bottom:18px;
+
+          width:44px;
+          height:44px;
+        }
+
+        #bgf-delivery-button{
+          left:12px;
+          bottom:74px;
+
+          width:44px;
+          height:44px;
+        }
+
+        #bgf-delivery-panel{
+          left:12px;
+          bottom:128px;
+
+          width:min(
+            310px,
+            calc(100vw - 24px)
+          );
+
+          padding:15px;
+
+          border-radius:14px;
+        }
+
+        .bgf-title{
+          font-size:15px;
+        }
+
+        #bgf-message{
+          font-size:13px;
+        }
+      }
+    `;
+
+    document.head.appendChild(style);
+
+
+    /* =========================
+       FLOATING CART
+       ========================= */
+
+    const cartButton =
+      document.createElement("button");
+
+    cartButton.id = "bgc";
+    cartButton.type = "button";
+
+    cartButton.setAttribute(
+      "aria-label",
+      "Open cart"
+    );
+
+    cartButton.innerHTML = `
+      <span id="bgb">
+
+        <svg
+          viewBox="0 0 30 32"
+          width="29"
+          height="31"
+          aria-hidden="true"
+        >
+          <path
+            d="M6 10.5h18L22.5 29h-15z"
+            fill="currentColor"
+          />
+
+          <path
+            d="M10.5 11V7.5a4.5 4.5 0 0 1 9 0V11"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+
+        <span id="bgn">0</span>
+
+      </span>
+    `;
+
+    document.body.appendChild(
+      cartButton
+    );
+
+    const cartCount =
+      document.getElementById(
+        "bgn"
+      );
+
+    cartButton.addEventListener(
+      "click",
+      function () {
+
+        if (
+          window.Ecwid &&
+          typeof Ecwid.openPage ===
+            "function"
+        ) {
+          Ecwid.openPage("cart");
+        }
       }
     );
-  }
 
-  function openPanel() {
 
-    if (!currentCart.productsQuantity) return;
+    /* =========================
+       SCROLL TO TOP
+       ========================= */
 
-    panel.classList.add("bgf-open");
-    button.classList.add("bgf-active");
+    const topButton =
+      document.createElement("button");
 
-    button.setAttribute(
-      "aria-expanded",
-      "true"
+    topButton.id =
+      "bgTopBtn";
+
+    topButton.type =
+      "button";
+
+    topButton.setAttribute(
+      "aria-label",
+      "Back to top"
     );
-  }
 
-  function closePanel() {
+    topButton.innerHTML = `
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M6 15l6-6 6 6"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    `;
 
-    panel.classList.remove("bgf-open");
-    button.classList.remove("bgf-active");
+    document.body.appendChild(
+      topButton
+    );
 
-    button.setAttribute(
+    topButton.addEventListener(
+      "click",
+      function () {
+
+        topButton.classList.remove(
+          "show"
+        );
+
+        window.scrollTo({
+          top:0,
+          behavior:"smooth"
+        });
+      }
+    );
+
+
+    /* =========================
+       FREE DELIVERY
+       ========================= */
+
+    const deliveryButton =
+      document.createElement(
+        "button"
+      );
+
+    deliveryButton.id =
+      "bgf-delivery-button";
+
+    deliveryButton.type =
+      "button";
+
+    deliveryButton.title =
+      "Free delivery progress";
+
+    deliveryButton.setAttribute(
+      "aria-label",
+      "Free delivery progress"
+    );
+
+    deliveryButton.setAttribute(
       "aria-expanded",
       "false"
     );
-  }
 
-  function togglePanel() {
+    deliveryButton.innerHTML =
+      VAN_ICON;
 
-    if (panel.classList.contains("bgf-open")) {
-      closePanel();
-    } else {
-      openPanel();
+    const deliveryPanel =
+      document.createElement("div");
+
+    deliveryPanel.id =
+      "bgf-delivery-panel";
+
+    deliveryPanel.setAttribute(
+      "role",
+      "region"
+    );
+
+    deliveryPanel.setAttribute(
+      "aria-label",
+      "Free delivery progress"
+    );
+
+    deliveryPanel.innerHTML = `
+      <button
+        id="bgf-close"
+        type="button"
+        aria-label="Close free delivery progress"
+      >
+        ×
+      </button>
+
+      <div class="bgf-header">
+
+        <div class="bgf-header-icon">
+          ${VAN_ICON}
+        </div>
+
+        <div class="bgf-title">
+          Free Delivery
+        </div>
+
+      </div>
+
+      <label
+        class="bgf-label"
+        for="bgf-region"
+      >
+        Delivery area
+      </label>
+
+      <select id="bgf-region">
+
+        <option value="male">
+          Malé
+        </option>
+
+        <option value="hulhumale">
+          Hulhumalé Phase 1
+        </option>
+
+      </select>
+
+      <div class="bgf-track">
+        <div id="bgf-fill"></div>
+      </div>
+
+      <div id="bgf-message"></div>
+
+      <div class="bgf-values">
+        <span id="bgf-cart-value"></span>
+        <span id="bgf-target-value"></span>
+      </div>
+    `;
+
+    document.body.appendChild(
+      deliveryButton
+    );
+
+    document.body.appendChild(
+      deliveryPanel
+    );
+
+    const regionSelect =
+      document.getElementById(
+        "bgf-region"
+      );
+
+    const progressFill =
+      document.getElementById(
+        "bgf-fill"
+      );
+
+    const deliveryMessage =
+      document.getElementById(
+        "bgf-message"
+      );
+
+    const cartValue =
+      document.getElementById(
+        "bgf-cart-value"
+      );
+
+    const targetValue =
+      document.getElementById(
+        "bgf-target-value"
+      );
+
+    const closeButton =
+      document.getElementById(
+        "bgf-close"
+      );
+
+    regionSelect.value =
+      selectedRegion;
+
+
+    /* =========================
+       MONEY FORMATTER
+       ========================= */
+
+    const moneyFormatter =
+      new Intl.NumberFormat(
+        "en-US",
+        {
+          minimumFractionDigits:2,
+          maximumFractionDigits:2
+        }
+      );
+
+    function money(value) {
+
+      return moneyFormatter.format(
+        Number(value || 0)
+      );
     }
-  }
 
-  function renderProgress() {
 
-    const region =
-      CONFIG.regions[selectedRegion];
+    /* =========================
+       DELIVERY PANEL
+       ========================= */
 
-    const subtotal =
-      Number(currentCart.subtotal || 0);
+    function openPanel() {
 
-    const quantity =
-      Number(currentCart.productsQuantity || 0);
+      if (
+        !cartState.productsQuantity
+      ) return;
 
-    if (quantity > 0) {
-
-      button.classList.add("bgf-visible");
-
-    } else {
-
-      button.classList.remove("bgf-visible");
-      button.classList.remove("bgf-unlocked");
-
-      closePanel();
-
-      return;
-    }
-
-    const target = region.target;
-
-    const remaining =
-      Math.max(target - subtotal, 0);
-
-    const percentage =
-      Math.min(
-        (subtotal / target) * 100,
-        100
+      deliveryPanel.classList.add(
+        "bgf-open"
       );
 
-    progressFill.style.width =
-      percentage + "%";
-
-    cartValue.textContent =
-      "Cart: MVR " + money(subtotal);
-
-    targetValue.textContent =
-      "Free at MVR " + money(target);
-
-    if (remaining > 0) {
-
-      panel.classList.remove(
-        "bgf-complete"
+      deliveryButton.classList.add(
+        "bgf-active"
       );
 
-      button.classList.remove(
-        "bgf-unlocked"
-      );
-
-      message.innerHTML =
-        'Add <strong>MVR ' +
-        money(remaining) +
-        '</strong> more for FREE delivery to ' +
-        region.name;
-
-      button.setAttribute(
-        "aria-label",
-        "Add MVR " +
-        money(remaining) +
-        " more for free delivery to " +
-        region.name
-      );
-
-    } else {
-
-      panel.classList.add(
-        "bgf-complete"
-      );
-
-      button.classList.add(
-        "bgf-unlocked"
-      );
-
-      message.innerHTML =
-        '✓ <strong>FREE delivery unlocked</strong> for ' +
-        region.name + "!";
-
-      button.setAttribute(
-        "aria-label",
-        "Free delivery unlocked for " +
-        region.name
+      deliveryButton.setAttribute(
+        "aria-expanded",
+        "true"
       );
     }
-  }
 
-  function getCart() {
+    function closePanel() {
 
-    if (
-      !window.Ecwid ||
-      !Ecwid.Cart ||
-      typeof Ecwid.Cart.get !== "function"
-    ) return;
+      deliveryPanel.classList.remove(
+        "bgf-open"
+      );
 
-    Ecwid.Cart.get(function (cart) {
+      deliveryButton.classList.remove(
+        "bgf-active"
+      );
 
-      currentCart = {
+      deliveryButton.setAttribute(
+        "aria-expanded",
+        "false"
+      );
+    }
 
+    function togglePanel() {
+
+      if (
+        deliveryPanel.classList.contains(
+          "bgf-open"
+        )
+      ) {
+        closePanel();
+      } else {
+        openPanel();
+      }
+    }
+
+    deliveryButton.addEventListener(
+      "click",
+      function (event) {
+
+        event.stopPropagation();
+
+        togglePanel();
+      }
+    );
+
+    closeButton.addEventListener(
+      "click",
+      closePanel
+    );
+
+    regionSelect.addEventListener(
+      "change",
+      function () {
+
+        selectedRegion =
+          regionSelect.value;
+
+        try {
+          localStorage.setItem(
+            "bgfDeliveryRegion",
+            selectedRegion
+          );
+        } catch (_) {}
+
+        renderDelivery();
+      }
+    );
+
+
+    /* =========================
+       RENDER DELIVERY
+       ========================= */
+
+    function renderDelivery() {
+
+      const region =
+        DELIVERY.regions[
+          selectedRegion
+        ];
+
+      const subtotal =
+        Number(
+          cartState.subtotal || 0
+        );
+
+      const quantity =
+        Number(
+          cartState.productsQuantity || 0
+        );
+
+      if (!quantity) {
+
+        deliveryButton.classList.remove(
+          "bgf-visible",
+          "bgf-unlocked"
+        );
+
+        closePanel();
+
+        return;
+      }
+
+      deliveryButton.classList.add(
+        "bgf-visible"
+      );
+
+      const target =
+        region.target;
+
+      const remaining =
+        Math.max(
+          target - subtotal,
+          0
+        );
+
+      const percentage =
+        Math.min(
+          target > 0
+            ? (subtotal / target) * 100
+            : 100,
+          100
+        );
+
+      progressFill.style.width =
+        percentage + "%";
+
+      cartValue.textContent =
+        "Cart: MVR " +
+        money(subtotal);
+
+      targetValue.textContent =
+        "Free at MVR " +
+        money(target);
+
+      if (remaining > 0) {
+
+        deliveryPanel.classList.remove(
+          "bgf-complete"
+        );
+
+        deliveryButton.classList.remove(
+          "bgf-unlocked"
+        );
+
+        deliveryMessage.innerHTML =
+          'Add <strong>MVR ' +
+          money(remaining) +
+          '</strong> more for FREE delivery to ' +
+          region.name;
+
+        deliveryButton.setAttribute(
+          "aria-label",
+          "Add MVR " +
+          money(remaining) +
+          " more for free delivery to " +
+          region.name
+        );
+
+      } else {
+
+        deliveryPanel.classList.add(
+          "bgf-complete"
+        );
+
+        deliveryButton.classList.add(
+          "bgf-unlocked"
+        );
+
+        deliveryMessage.innerHTML =
+          '✓ <strong>FREE delivery unlocked</strong> for ' +
+          region.name +
+          "!";
+
+        deliveryButton.setAttribute(
+          "aria-label",
+          "Free delivery unlocked for " +
+          region.name
+        );
+      }
+    }
+
+
+    /* =========================
+       SHARED CART UPDATE
+       ========================= */
+
+    function updateCart(cart) {
+
+      if (!cart) return;
+
+      cartState = {
         productsQuantity:
           Number(
-            cart &&
-            cart.productsQuantity
-              ? cart.productsQuantity
-              : 0
+            cart.productsQuantity || 0
           ),
 
         subtotal:
           Number(
-            cart &&
-            cart.subtotal
-              ? cart.subtotal
-              : 0
+            cart.subtotal || 0
           )
       };
 
-      renderProgress();
-    });
-  }
+      const quantity =
+        cartState.productsQuantity;
 
-  regionSelect.addEventListener(
-    "change",
-    function () {
+      cartCount.textContent =
+        quantity > 99
+          ? "99+"
+          : quantity;
 
-      selectedRegion =
-        regionSelect.value;
-
-      try {
-
-        localStorage.setItem(
-          "bgfDeliveryRegion",
-          selectedRegion
-        );
-
-      } catch (e) {}
-
-      renderProgress();
+      renderDelivery();
     }
-  );
 
-  button.addEventListener(
-    "click",
-    function (event) {
-
-      event.stopPropagation();
-
-      togglePanel();
-    }
-  );
-
-  closeButton.addEventListener(
-    "click",
-    function () {
-
-      closePanel();
-    }
-  );
-
-  document.addEventListener(
-    "click",
-    function (event) {
+    function getCart() {
 
       if (
-        panel.classList.contains("bgf-open") &&
-        !panel.contains(event.target) &&
-        !button.contains(event.target)
+        !window.Ecwid ||
+        !Ecwid.Cart ||
+        typeof Ecwid.Cart.get !==
+          "function"
       ) {
-        closePanel();
+        return;
       }
+
+      Ecwid.Cart.get(
+        updateCart
+      );
     }
-  );
 
-  document.addEventListener(
-    "keydown",
-    function (event) {
 
-      if (event.key === "Escape") {
-        closePanel();
+    /* =========================
+       SINGLE ECWID CONNECTION
+       ========================= */
+
+    function startEcwid() {
+
+      if (ecwidStarted) {
+        return true;
       }
-    }
-  );
 
-  function findScrollTopButton() {
-
-    if (CONFIG.scrollTopSelector) {
-
-      const manual =
-        document.querySelector(
-          CONFIG.scrollTopSelector
-        );
-
-      if (manual) return manual;
-    }
-
-    const selectors = [
-      "#scrollTopBtn",
-      "#scroll-to-top",
-      "#scrollToTop",
-      "#backToTop",
-      ".scroll-to-top",
-      ".scrollTopBtn",
-      ".scroll-top",
-      ".back-to-top",
-      "[aria-label*='scroll to top' i]",
-      "[title*='scroll to top' i]",
-      "[aria-label*='back to top' i]",
-      "[title*='back to top' i]"
-    ];
-
-    for (
-      let i = 0;
-      i < selectors.length;
-      i++
-    ) {
-
-      const el =
-        document.querySelector(
-          selectors[i]
-        );
-
-      if (el && el !== button) {
-        return el;
+      if (
+        !window.Ecwid ||
+        !Ecwid.Cart ||
+        typeof Ecwid.Cart.get !==
+          "function" ||
+        !Ecwid.OnCartChanged ||
+        typeof Ecwid.OnCartChanged.add !==
+          "function"
+      ) {
+        return false;
       }
-    }
 
-    return null;
-  }
+      ecwidStarted = true;
 
-  function syncWithScrollButton() {
+      Ecwid.OnCartChanged.add(
+        function (cart) {
 
-    const scrollButton =
-      findScrollTopButton();
+          /*
+           * Ecwid normally supplies the
+           * updated cart object directly.
+           */
 
-    if (!scrollButton) return;
-
-    const rect =
-      scrollButton.getBoundingClientRect();
-
-    if (
-      rect.width < 30 ||
-      rect.width > 100 ||
-      rect.height < 30 ||
-      rect.height > 100
-    ) return;
-
-    const computed =
-      window.getComputedStyle(
-        scrollButton
+          if (
+            cart &&
+            typeof cart === "object"
+          ) {
+            updateCart(cart);
+          } else {
+            getCart();
+          }
+        }
       );
 
-    if (
-      computed.position !== "fixed" &&
-      computed.position !== "sticky"
-    ) return;
+      getCart();
 
-    const size =
-      Math.max(
-        rect.width,
-        rect.height
-      );
-
-    const bottom =
-      window.innerHeight -
-      rect.bottom;
-
-    document.documentElement.style.setProperty(
-      "--bgf-size",
-      Math.round(size) + "px"
-    );
-
-    document.documentElement.style.setProperty(
-      "--bgf-left",
-      Math.round(rect.left) + "px"
-    );
-
-    document.documentElement.style.setProperty(
-      "--bgf-scroll-bottom",
-      Math.round(bottom) + "px"
-    );
-  }
-
-  syncWithScrollButton();
-
-  setTimeout(
-    syncWithScrollButton,
-    500
-  );
-
-  setTimeout(
-    syncWithScrollButton,
-    1500
-  );
-
-  setTimeout(
-    syncWithScrollButton,
-    3000
-  );
-
-  window.addEventListener(
-    "resize",
-    syncWithScrollButton
-  );
-
-  window.addEventListener(
-    "scroll",
-    syncWithScrollButton,
-    { passive: true }
-  );
-
-  function start() {
-
-    if (started) return;
-
-    if (
-      !window.Ecwid ||
-      !Ecwid.Cart ||
-      typeof Ecwid.Cart.get !== "function" ||
-      !Ecwid.OnCartChanged ||
-      typeof Ecwid.OnCartChanged.add !== "function"
-    ) {
-      return;
+      return true;
     }
 
-    started = true;
+    /*
+     * Use Ecwid API event where available.
+     */
 
-    Ecwid.OnCartChanged.add(
+    if (
+      window.Ecwid &&
+      Ecwid.OnAPILoaded &&
+      typeof Ecwid.OnAPILoaded.add ===
+        "function"
+    ) {
+      Ecwid.OnAPILoaded.add(
+        startEcwid
+      );
+    }
+
+    /*
+     * Try immediately.
+     */
+
+    if (!startEcwid()) {
+
+      /*
+       * Short fallback only.
+       * Maximum ~10 seconds.
+       */
+
+      let attempts = 0;
+
+      const ecwidWait =
+        setInterval(
+          function () {
+
+            attempts++;
+
+            if (
+              startEcwid() ||
+              attempts >= 40
+            ) {
+              clearInterval(
+                ecwidWait
+              );
+            }
+
+          },
+          250
+        );
+    }
+
+
+    /* =========================
+       ONE SCROLL HANDLER
+       ========================= */
+
+    function updateScrollUI() {
+
+      scrollTicking = false;
+
+      const currentY =
+        window.scrollY;
+
+      /*
+       * Floating cart
+       */
+
+      cartButton.classList.toggle(
+        "on",
+        currentY > 180
+      );
+
+      /*
+       * Scroll-to-top behaviour
+       */
+
+      const difference =
+        currentY - lastScrollY;
+
+      if (
+        currentY < 450
+      ) {
+
+        topButton.classList.remove(
+          "show"
+        );
+
+      } else if (
+        Math.abs(difference) >= 3
+      ) {
+
+        if (difference > 0) {
+
+          topButton.classList.add(
+            "show"
+          );
+
+        } else {
+
+          topButton.classList.remove(
+            "show"
+          );
+        }
+      }
+
+      lastScrollY =
+        currentY;
+    }
+
+    window.addEventListener(
+      "scroll",
       function () {
-        getCart();
+
+        if (scrollTicking) return;
+
+        scrollTicking = true;
+
+        requestAnimationFrame(
+          updateScrollUI
+        );
+      },
+      {
+        passive:true
       }
     );
 
-    getCart();
-  }
+    /*
+     * Set initial cart-button state
+     * without showing Back to Top.
+     */
 
-  if (
-    window.Ecwid &&
-    Ecwid.OnAPILoaded &&
-    typeof Ecwid.OnAPILoaded.add === "function"
-  ) {
-    Ecwid.OnAPILoaded.add(start);
-  }
+    cartButton.classList.toggle(
+      "on",
+      window.scrollY > 180
+    );
 
-  const waitForEcwid =
-    setInterval(function () {
 
-      start();
+    /* =========================
+       PANEL CLOSE EVENTS
+       ========================= */
 
-      if (started) {
-        clearInterval(waitForEcwid);
+    document.addEventListener(
+      "click",
+      function (event) {
+
+        if (
+          deliveryPanel.classList.contains(
+            "bgf-open"
+          ) &&
+          !deliveryPanel.contains(
+            event.target
+          ) &&
+          !deliveryButton.contains(
+            event.target
+          )
+        ) {
+          closePanel();
+        }
       }
+    );
 
-    }, 300);
+    document.addEventListener(
+      "keydown",
+      function (event) {
+
+        if (
+          event.key === "Escape"
+        ) {
+          closePanel();
+        }
+      }
+    );
+
+
+    /* =========================
+       COPY ACCOUNT BUTTON
+       ========================= */
+
+    document.addEventListener(
+      "click",
+      function (event) {
+
+        const copyButton =
+          event.target.closest(
+            ".copy-account-btn"
+          );
+
+        if (!copyButton) return;
+
+        event.preventDefault();
+
+        const textToCopy =
+          copyButton.getAttribute(
+            "data-copy"
+          );
+
+        if (!textToCopy) return;
+
+        const originalText =
+          copyButton.textContent;
+
+        function showCopied() {
+
+          copyButton.textContent =
+            "Copied!";
+
+          setTimeout(
+            function () {
+
+              copyButton.textContent =
+                originalText || "Copy";
+
+            },
+            1500
+          );
+        }
+
+        function fallbackCopy() {
+
+          const textarea =
+            document.createElement(
+              "textarea"
+            );
+
+          textarea.value =
+            textToCopy;
+
+          textarea.setAttribute(
+            "readonly",
+            ""
+          );
+
+          textarea.style.cssText =
+            "position:fixed;" +
+            "left:-9999px;" +
+            "top:0;";
+
+          document.body.appendChild(
+            textarea
+          );
+
+          textarea.focus();
+          textarea.select();
+
+          try {
+
+            if (
+              document.execCommand(
+                "copy"
+              )
+            ) {
+              showCopied();
+            }
+
+          } catch (error) {
+
+            console.warn(
+              "Copy failed:",
+              error
+            );
+          }
+
+          textarea.remove();
+        }
+
+        if (
+          navigator.clipboard &&
+          window.isSecureContext
+        ) {
+
+          navigator.clipboard
+            .writeText(
+              textToCopy
+            )
+            .then(
+              showCopied
+            )
+            .catch(
+              fallbackCopy
+            );
+
+        } else {
+
+          fallbackCopy();
+        }
+      }
+    );
+  }
+
+
+  /* =========================
+     INITIALISE
+     ========================= */
+
+  if (document.body) {
+
+    init();
+
+  } else {
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      init,
+      {
+        once:true
+      }
+    );
+  }
 
 })();
-document.addEventListener("click", function (event) {
-  var button = event.target.closest(".copy-account-btn");
-
-  if (!button) return;
-
-  event.preventDefault();
-
-  var textToCopy = button.getAttribute("data-copy");
-
-  function showCopied() {
-    button.textContent = "Copied!";
-
-    setTimeout(function () {
-      button.textContent = "Copy";
-    }, 1500);
-  }
-
-  function fallbackCopy() {
-    var textarea = document.createElement("textarea");
-
-    textarea.value = textToCopy;
-    textarea.setAttribute("readonly", "");
-    textarea.style.position = "fixed";
-    textarea.style.left = "-9999px";
-    textarea.style.top = "0";
-
-    document.body.appendChild(textarea);
-
-    textarea.focus();
-    textarea.select();
-
-    try {
-      var successful = document.execCommand("copy");
-
-      if (successful) {
-        showCopied();
-      }
-    } catch (error) {
-      console.log("Copy failed:", error);
-    }
-
-    document.body.removeChild(textarea);
-  }
-
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(textToCopy)
-      .then(function () {
-        showCopied();
-      })
-      .catch(function () {
-        fallbackCopy();
-      });
-  } else {
-    fallbackCopy();
-  }
-});
